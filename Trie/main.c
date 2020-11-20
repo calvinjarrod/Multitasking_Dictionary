@@ -30,7 +30,7 @@ typedef struct Dictionary {
 
 int initDict(Dictionary *Dict) {
 	Dict->numEntries=0;
-	Dict->entries.root = NULL;
+	Dict->entries.root = newTrieNode(Dict->entries.root);
 }
 
 char lowerCaseify(char c) {
@@ -80,7 +80,7 @@ int addDict(struct Dictionary *Dict, char *word, size_t length) {
 			markLetterInTrieNode(Dict->entries.root,word[i]);
 			// create a new node for every marked letter
 			Dict->entries.root->next[char2Indx(word[i])] = newTrieNode(Dict->entries.root->next[char2Indx(word[i])]);
-			currentNode=Dict->entries.root->next[char2Indx(word[i])];
+			currentNode=Dict->entries.root;
 			i++;
 		// not empty, but current letter not in current node 
 		} else if (!checkLetterInTrieNode(currentNode,word[i])) {
@@ -98,13 +98,37 @@ int addDict(struct Dictionary *Dict, char *word, size_t length) {
 }
 
 int removeDict(struct Dictionary *Dict, char *word, size_t length) {
-	if (Dict->entries->root == NULL) return -1;
-	for (int i = 0; i < length; i++) {
-		if (i == 0) {
+	TrieNode *dict_root = Dict->entries.root;
+	if (dict_root == NULL) return 0;
+	TrieNode *current=dict_root, *parent=NULL;
+	for (int i = length-1; i >= 0; i--) {
+		if (current == parent) {
+			unmarkLetterInTrieNode(current,word[i]);
+		} else if (i == length-1) { // first time through loop, need to set current node
 			int indx=0;
-			while (indx < )
+			while (indx < length) {
+				parent=current;
+				current=current->next[char2Indx(word[indx++])];
+			}
+			if (checkAnyLetterInTrieNode(current)) return 1;
+			free(current);
+			unmarkLetterInTrieNode(parent,word[i]);
+			current = parent;
+			// get node above current again
+			parent = dict_root; indx=0;
+			while (parent->next[char2Indx(word[indx])] != current)
+				parent=parent->next[char2Indx(word[indx++])];
+		} else {
+			free(current);
+			unmarkLetterInTrieNode(parent,word[i]);
+			current=parent;
+			parent = dict_root; int indx=0;
+			// seg faulting here... seems to keep going forever
+			while (parent->next[char2Indx(word[indx])] != current)
+				parent=parent->next[char2Indx(word[indx++])];
 		}
 	}
+	return 1;
 }
 
 int checkDict(struct Dictionary *Dict, char *word, size_t length) {
@@ -141,6 +165,8 @@ int main(void) {
 		}
 		printf(" ");
 	}
+	printf("\n");
+	printf("Delete \"the\":%d\n",removeDict(&dict,words,3));
 	printf("\n");
 	printf("%d\n",checkDict(&dict,words,lengths[0]));
 	printf("%d\n",checkDict(&dict,(words+3),lengths[1]));
