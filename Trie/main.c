@@ -95,9 +95,12 @@ int addDict(struct Dictionary *Dict, char *word, size_t length) {
 			i++;
 		}
 	}
+	Dict->numEntries += 1;
+	return 1;
 }
 
 int removeDict(struct Dictionary *Dict, char *word, size_t length) {
+	if (!checkDict(Dict,word,length)) {return 0;}
 	TrieNode *dict_root = Dict->entries.root;
 	if (dict_root == NULL) return 0;
 	TrieNode *current=dict_root, *parent=NULL;
@@ -116,7 +119,7 @@ int removeDict(struct Dictionary *Dict, char *word, size_t length) {
 			current = parent;
 			// get node above current again
 			parent = dict_root; indx=0;
-			while (parent->next[char2Indx(word[indx])] != current)
+			while (parent->next[char2Indx(word[indx])] != current && parent != current)
 				parent=parent->next[char2Indx(word[indx++])];
 		} else {
 			free(current);
@@ -124,10 +127,11 @@ int removeDict(struct Dictionary *Dict, char *word, size_t length) {
 			current=parent;
 			parent = dict_root; int indx=0;
 			// seg faulting here... seems to keep going forever
-			while (parent->next[char2Indx(word[indx])] != current)
+			while (parent->next[char2Indx(word[indx])] != current && parent != current)
 				parent=parent->next[char2Indx(word[indx++])];
 		}
 	}
+	Dict->numEntries -= 1;
 	return 1;
 }
 
@@ -167,6 +171,8 @@ int main(void) {
 	}
 	printf("\n");
 	printf("Delete \"the\":%d\n",removeDict(&dict,words,3));
+	printf("Delete \"both\":%d\n",removeDict(&dict,(words+3),4));
+	printf("Delete \"that\":%d\n",removeDict(&dict,(words+3),4));
 	printf("\n");
 	printf("%d\n",checkDict(&dict,words,lengths[0]));
 	printf("%d\n",checkDict(&dict,(words+3),lengths[1]));
