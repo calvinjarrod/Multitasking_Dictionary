@@ -17,11 +17,7 @@ int main(void) {
 		if (cmd == 99) break;
 		in>>word;
 		int size = word.length();
-		out<<size+1<<" "<<cmd<<" ";
-		for (string::iterator myIter = word.begin(); myIter < word.end(); myIter++) {
-			out<<(int)*myIter<<" ";
-		}
-		out<<"\n";
+		out<<(char)(size+1)<<(char)cmd<<word<<"\n";
 	}
 	out.close();
 	return 0;
