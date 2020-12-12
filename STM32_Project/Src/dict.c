@@ -5,10 +5,7 @@
 
 int initDict(Dictionary *Dict) {
 	Dict->numEntries=0;
-	Dict->activeReaders=0;
-	Dict->activeWriters=0;
-	Dict->waitingReaders=0;
-	Dict->waitingWriters=0;
+	Dict->entries.root = NULL;
 	Dict->entries.root = newTrieNode(Dict->entries.root);
 	return 1;
 }
@@ -49,29 +46,21 @@ void unmarkLetterInTrieNode(struct TrieNode *node, char c) {
 	node->validLetter &= ~(1<<indx);
 }
 
-int Dict_Task_Add(Dictionary *Dict, char *word, size_t length) {
-	Dict_startWrite(Dict);
-	int result = addDict(Dict,word,length);
-	Dict_doneWrite(Dict);
-	return result;
-}
-
 int addDict(struct Dictionary *Dict, char *word, size_t length) {
-	osMutexWait(dictTrieLock,osWaitForever);
 	int i = 0;
 	struct TrieNode *currentNode = Dict->entries.root;
 	while (i < length) {
 		// trie is empty
 		if (currentNode == NULL) {
-			Dict->entries.root = (TrieNode *) malloc(sizeof(TrieNode));	
-			initTrieNode(Dict->entries.root);
+			/*Dict->entries.root = newTrieNode(Dict->entries.root);	
 			markLetterInTrieNode(Dict->entries.root,word[i]);
 			// create a new node for every marked letter
 			Dict->entries.root->next[char2Indx(word[i])] = 
 				newTrieNode(Dict->entries.root->next[char2Indx(word[i])]);
 			
 			currentNode=Dict->entries.root;
-			i++;
+			i++;*/
+			return 0;
 		// not empty, but current letter not in current node 
 		} else if (!checkLetterInTrieNode(currentNode,word[i])) {
 			markLetterInTrieNode(currentNode,word[i]);
@@ -86,22 +75,13 @@ int addDict(struct Dictionary *Dict, char *word, size_t length) {
 		}
 	}
 	Dict->numEntries += 1;
-	osMutexRelease(dictTrieLock);
 	return 1;
 }
 
-int Dict_Task_Remove(Dictionary *Dict, char *word, size_t length) {
-	Dict_startWrite(Dict);
-	int result = removeDict(Dict,word,length);
-	Dict_doneWrite(Dict);
-	return result;
-}
-
 int removeDict(struct Dictionary *Dict, char *word, size_t length) {
-	osMutexWait(dictTrieLock,osWaitForever);
-	if (!checkDict(Dict,word,length)) {osMutexRelease(dictTrieLock);return 0;}
+	if (!checkDict(Dict,word,length)) {;return 0;}
 	TrieNode *dict_root = Dict->entries.root;
-	if (dict_root == NULL) {osMutexRelease(dictTrieLock);return 0;}
+	if (dict_root == NULL) {return 0;}
 	TrieNode *current=dict_root, *parent=NULL;
 	for (int i = length-1; i >= 0; i--) {
 		if (current == parent) {
@@ -113,7 +93,6 @@ int removeDict(struct Dictionary *Dict, char *word, size_t length) {
 				current=current->next[char2Indx(word[indx++])];
 			}
 			if (checkAnyLetterInTrieNode(current)) {
-				osMutexRelease(dictTrieLock);
 				return 1;
 			}
 			free(current);
@@ -133,16 +112,9 @@ int removeDict(struct Dictionary *Dict, char *word, size_t length) {
 		}
 	}
 	Dict->numEntries -= 1;
-	osMutexRelease(dictTrieLock);
 	return 1;
 }
 
-int Dict_Task_Search(Dictionary *Dict, char * word, size_t length) {
-	Dict_startRead(Dict);
-	int result = checkDict(Dict,word,length);
-	Dict_doneRead(Dict);
-	return result;
-}
 
 int checkDict(struct Dictionary *Dict, char *word, size_t length) {
 	int i = 0;
@@ -160,26 +132,3 @@ int checkDict(struct Dictionary *Dict, char *word, size_t length) {
 	}
 	return 1;
 }
-
-void Dict_startRead(Dictionary *Dict) {
-	osMutexWait(dictTrieLock,osWaitForever);
-	Dict->waitingReaders++;
-	osMutexRelease(dictTrieLock);
-	while (Dict->activeWriters > 0 || Dict->waitingWriters > 0) {
-		osSemaphoreWait(dictReadSema,osWaitForever);
-	}
-	osMutexWait(dictTrieLock,osWaitForever);
-	osSemaphoreWait(dictWriteSema,osWaitForever);
-	Dict->waitingReaders--;
-	Dict->activeReaders++;
-	osMutexRelease(dictTrieLock);
-}
-
-void Dict_doneRead(Dictionary *Dict) {
-	osMutexWait(dictTrieLock,osWaitForever);
-	Dict->activeReaders--;
-	if (Dict->activeReaders == 0 && Dict->waitingWriters > 0) {
-		osSemaphoreRelease(dictWriteSema);
-}
-void Dict_startWrite(Dictionary *Dict);
-void Dict_doneWrite(Dictionary *Dict);

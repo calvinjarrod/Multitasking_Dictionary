@@ -28,4 +28,6 @@ void Dict_CMD_Queue_Init(Dict_CMD_Queue * buffer);
 int Dict_CMD_Queue_Push(Dict_CMD_Queue * buffer, Dict_CMD * newCmd);
 Dict_CMD * Dict_CMD_Queue_Pop(Dict_CMD_Queue * buffer);
 
-extern osMutexId_t cmdQueueLock;
+extern osMutexId cmdQueueLock;
+extern osThreadId DictionaryManagerHandle;
+extern osThreadId defaultTaskHandle;

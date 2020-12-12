@@ -25,8 +25,9 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include "dict.h"
-#include "pkt_queue.h"
 #include "cmd_queue.h"
 /* USER CODE END Includes */
 
@@ -49,46 +50,15 @@
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
-/* Definitions for defaultTask */
-osThreadId_t defaultTaskHandle;
-const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128
-};
-osThreadId_t DictionaryManagerHandle[2];
-const osThreadAttr_t dictManager_attributes = {
-  .name = "dictManager",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128,
-};
-/* Definitions for myMutex01 */
-osMutexId_t cmdQueueLock;
-const osMutexAttr_t cmdQueueMutex_attributes = {
-  .name = "cmdQueueMutex"
-};
-osMutexId_t dictTrieLock;
-const osMutexAttr_t dictTrieMutex_attributes = {
-  .name = "dictTrieMutex"
-};
-/* Definitions for myCountingSem01 */
-osSemaphoreId_t cmdQueueSema;
-const osSemaphoreAttr_t cmdQueueSemaphore_attributes = {
-  .name = "cmdQueueSemaphore"
-};
-osSemaphoreId_t dictReadSema;
-const osSemaphoreAttr_t dictReadSemaphore_attributes = {
-  .name = "dictReadSemaphore"
-};
-osSemaphoreId_t dictWriteSema;
-const osSemaphoreAttr_t dictWriteSemaphore_attributes = {
-  .name = "dictWriteSemaphore"
-};
+osThreadId defaultTaskHandle;
+osMutexId cmdQueueLock;
 /* USER CODE BEGIN PV */
+osThreadId DictionaryManagerHandle;
 uint8_t currentPkt[MAX_WORD_LENGTH+CMD_LENGTH+1];
 Pkt_Queue * Pkt_buffer;
 Dict_CMD_Queue * Dict_CMD_buffer;
 Dictionary * wordDict;
+uint8_t Tx_buffer[20];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,15 +66,18 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
-void StartDefaultTask(void *argument);
+void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-void DictionaryManagerTask(void *arguments);
+void DictionaryManagerTask(void const *arguments);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void UART_SEND(const char* literal,  const char* word, size_t wordSize) {
+	snprintf((char*)Tx_buffer,sizeof(Tx_buffer),"%s%s\n",literal,word);
+	HAL_UART_Transmit(&huart1,(uint8_t *)Tx_buffer,strlen(word)+strlen(literal)+1,100);
+}
 /* USER CODE END 0 */
 
 /**
@@ -118,6 +91,8 @@ int main(void)
 	Pkt_Queue_Init(Pkt_buffer);
 	Dict_CMD_buffer = (Dict_CMD_Queue*)malloc(sizeof(Dict_CMD_Queue));
 	Dict_CMD_Queue_Init(Dict_CMD_buffer);
+	wordDict = (Dictionary*)malloc(sizeof(Dictionary));
+	initDict(wordDict);
   /* USER CODE END 1 */
   
 
@@ -144,21 +119,14 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
-  /* Init scheduler */
-  osKernelInitialize();
   /* Create the mutex(es) */
-  /* creation of myMutex01 */
-  cmdQueueLock = osMutexNew(&cmdQueueMutex_attributes);
-	dictTrieLock = osMutexNew(&dictTrieMutex_attributes);
+  /* definition and creation of myMutex01 */
+  osMutexDef(myMutex01);
+  cmdQueueLock = osMutexCreate(osMutex(myMutex01));
+
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
-
-  /* Create the semaphores(s) */
-  /* creation of myCountingSem01 */
-  cmdQueueSema = osSemaphoreNew(3, 0, &cmdQueueSemaphore_attributes);
-	dictReadSema = osSemaphoreNew(1, 1, &dictReadSemaphore_attributes);
-	dictWriteSema = osSemaphoreNew(1, 1, &dictWriteSemaphore_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
@@ -173,10 +141,11 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-	DictionaryManagerHandle[0] = osThreadNew(DictionaryManagerTask,NULL,&dictManager_attributes);
-	DictionaryManagerHandle[1] = osThreadNew(DictionaryManagerTask,NULL,&dictManager_attributes);
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+	osThreadDef(DictionaryManager, DictionaryManagerTask, osPriorityNormal, 0, 128);
+  DictionaryManagerHandle = osThreadCreate(osThread(DictionaryManager), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   HAL_UART_Receive_IT(&huart1,(uint8_t*)currentPkt,1);
@@ -365,7 +334,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		UBaseType_t savedState = taskENTER_CRITICAL_FROM_ISR();
 		uint8_t numBytes = currentPkt[0];
 		HAL_UART_Receive(&huart1,(uint8_t *)currentPkt,numBytes,10);
-		HAL_UART_Transmit(&huart1,(uint8_t*)currentPkt,numBytes,10);
+		//HAL_UART_Transmit(&huart1,(uint8_t*)currentPkt,numBytes,10);
 		UART_Pkt * newPkt = (UART_Pkt *)malloc(sizeof(UART_Pkt));
 		for (int i = 0; i < numBytes; i++) {
 			newPkt->data[i] = currentPkt[i];
@@ -379,12 +348,40 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	} else if (huart==&huart2){} // if interrupt triggered from UART2
 }
 
-void DictionaryManagerTask(void *arguments) {
+void DictionaryManagerTask(void const *arguments) {
 	while (1) {
-		while (Dict_CMD_buffer->size == 0) {/* wait on semaphore */}
+		// wait for cmd buffer to have contents
+		while (Dict_CMD_buffer->size == 0) {osSignalWait(0x01,10);}
 		Dict_CMD * newCMD = Dict_CMD_Queue_Pop(Dict_CMD_buffer);
+		INSTRUCT instruction = newCMD->instruction;
+		uint8_t word[MAX_WORD_LENGTH+CMD_LENGTH];
+		snprintf((char*)word,sizeof(word),"%s",newCMD->word);
+		uint8_t wordSize = newCMD->wordSize;
+		free(newCMD);
 		
-		osThreadYield();
+		// signal default task if cmd buffer was full
+		if (Dict_CMD_buffer->capacity - Dict_CMD_buffer->size == 1) 
+			osSignalSet(defaultTaskHandle,0x02);
+		
+		if (instruction == INSERT) {
+			if (addDict(wordDict,(char *)word,wordSize)) {
+				UART_SEND("Added ",(char *)word,wordSize);
+			} else {
+				UART_SEND("Failed to add ",(char *)word,wordSize);
+			}
+		} else if (instruction == DELETE) {
+			if (removeDict(wordDict,(char *)word,wordSize)){
+				UART_SEND("Deleted ",(char *)word,wordSize);
+			} else {
+				UART_SEND("Failed to deleted ",(char *)word,wordSize);
+			}
+		} else if (instruction == CHECK) {
+			if (checkDict(wordDict,(char *)word,wordSize)) {
+				UART_SEND("Found ",(char *)word,wordSize);
+			} else {
+				UART_SEND("Didn't find ",(char *)word,wordSize);
+			}
+		}
 	}
 }
 
@@ -397,7 +394,7 @@ void DictionaryManagerTask(void *arguments) {
   * @retval None
   */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+void StartDefaultTask(void const * argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
@@ -416,15 +413,36 @@ void StartDefaultTask(void *argument)
 			Dict_CMD * newCmd = (Dict_CMD*)malloc(sizeof(Dict_CMD)); 
 			if (newPkt->error < 0) break;
 			newCmd->wordSize = newPkt->dataSize-1;
-			newCmd->instruction = newPkt->data[0];
+			switch (newPkt->data[0]) {
+				case 0:
+					newCmd->instruction = INSERT;
+					break;
+				case 1:
+					newCmd->instruction = DELETE;
+					break;
+				case 2:
+					newCmd->instruction = CHECK;
+					break;
+				case 3:
+					newCmd->instruction = EMPTY;
+					break;
+				case 4:
+					newCmd->instruction = ERR;
+					break;
+				default:
+					newCmd->instruction = ERR;
+					break;
+			}
 			for (int i = 1; i < newPkt->dataSize; i++) {
 				newCmd->word[i-1] = newPkt->data[i];
 			}
+			// wait in case buffer is full
+			while (Dict_CMD_buffer->size == Dict_CMD_buffer->capacity) 
+				osSignalWait(0x02,10);
 			Dict_CMD_Queue_Push(Dict_CMD_buffer,newCmd);
 			free(newPkt);
 		}
 		osThreadYield();
-		//HAL_UART_Transmit_IT(&huart1,(uint8_t *)transmit,sizeof(transmit));
   }
   /* USER CODE END 5 */ 
 }

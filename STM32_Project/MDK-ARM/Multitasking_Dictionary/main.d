@@ -34,7 +34,7 @@ multitasking_dictionary\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_ha
 multitasking_dictionary\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_tim_ex.h
 multitasking_dictionary\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart.h
 multitasking_dictionary\main.o: ../Drivers/STM32L4xx_HAL_Driver/Inc/stm32l4xx_hal_uart_ex.h
-multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h
 multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/FreeRTOS.h
 multitasking_dictionary\main.o: ../Inc/FreeRTOSConfig.h
 multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/projdefs.h
@@ -44,8 +44,16 @@ multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/porta
 multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/mpu_wrappers.h
 multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/task.h
 multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/list.h
-multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/timers.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/queue.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/semphr.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/include/event_groups.h
 multitasking_dictionary\main.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdlib.h
+multitasking_dictionary\main.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+multitasking_dictionary\main.o: D:\Program Files\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 multitasking_dictionary\main.o: ../Inc/dict.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h
 multitasking_dictionary\main.o: ../Inc/trie.h
+multitasking_dictionary\main.o: ../Inc/cmd_queue.h
+multitasking_dictionary\main.o: ../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS/cmsis_os.h
 multitasking_dictionary\main.o: ../Inc/pkt_queue.h

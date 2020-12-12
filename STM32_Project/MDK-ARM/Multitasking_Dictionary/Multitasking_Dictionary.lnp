@@ -36,7 +36,7 @@
 "multitasking_dictionary\stream_buffer.o"
 "multitasking_dictionary\tasks.o"
 "multitasking_dictionary\timers.o"
-"multitasking_dictionary\cmsis_os2.o"
+"multitasking_dictionary\cmsis_os.o"
 "multitasking_dictionary\heap_4.o"
 "multitasking_dictionary\port.o"
 --library_type=microlib --strict --scatter "Multitasking_Dictionary\Multitasking_Dictionary.sct"

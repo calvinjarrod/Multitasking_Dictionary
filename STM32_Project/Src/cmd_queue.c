@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "cmd_queue.h"
+#include <cmsis_os.h>
 
 void Dict_CMD_Queue_Init(Dict_CMD_Queue * buffer) {
 	buffer->capacity = CMD_QUEUE_SIZE;
@@ -27,6 +28,8 @@ int Dict_CMD_Queue_Push(Dict_CMD_Queue * buffer,Dict_CMD * newCmd) {
 		buffer->rear++;
 		if (buffer->rear == buffer->capacity) buffer->rear = 0;
 	}
+	if (buffer->size==1) // just added an element, now signal waiting task
+		osSignalSet(DictionaryManagerHandle,0x01);
 	osMutexRelease(cmdQueueLock);
 	return 0; // 0 means correct funcitoning of buffer and H_CMD was properly
 						// pushed into it
@@ -58,6 +61,9 @@ Dict_CMD * Dict_CMD_Queue_Pop(Dict_CMD_Queue * buffer) {
 		}
 		buffer->front++;
 		if (buffer->front == buffer->capacity) buffer->front = 0;
+		if (buffer->capacity - buffer->size == 1)
+			osSignalSet(defaultTaskHandle,0x02);
+		
 		osMutexRelease(cmdQueueLock);
 		return buffer->Dictionary_Commands[buffer->front - 1];
 	}
