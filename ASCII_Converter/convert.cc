@@ -7,22 +7,21 @@ using namespace std;
 
 int main(void) {
 	ofstream out;
-	out.open("dictionaryCMDs.txt");
+	ifstream in;
+	in.open("dictCMD_plain.txt");
+	out.open("dictCMD_convert.txt");
 	string word;
 	unsigned int cmd;
 	while (1) {
-		cin>>cmd;
+		in>>cmd;
 		if (cmd == 99) break;
-		cin>>word;
+		in>>word;
 		int size = word.length();
-		out<<size+1<<" ";
+		out<<size+1<<" "<<cmd<<" ";
 		for (string::iterator myIter = word.begin(); myIter < word.end(); myIter++) {
-			cout<<(int)*myIter<<" ";
 			out<<(int)*myIter<<" ";
 		}
-		cout<<endl;
 		out<<"\n";
-		cout<<size<<endl;
 	}
 	out.close();
 	return 0;

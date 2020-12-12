@@ -1,0 +1,14 @@
+2 about
+0 about
+0 doctor
+2 doctor
+2 ardvark
+1 ghost
+0 ghost
+2 ghost
+1 ghost
+2 about
+1 doctor
+2 doctor
+99
+
