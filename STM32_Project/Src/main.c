@@ -67,6 +67,7 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
+void toUpper(char *str,size_t strSize);
 
 /* USER CODE BEGIN PFP */
 void DictionaryManagerTask(void const *arguments);
@@ -74,9 +75,17 @@ void DictionaryManagerTask(void const *arguments);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void UART_SEND(const char* literal,  const char* word, size_t wordSize) {
-	snprintf((char*)Tx_buffer,sizeof(Tx_buffer),"%s%s\n",literal,word);
-	HAL_UART_Transmit(&huart1,(uint8_t *)Tx_buffer,strlen(word)+strlen(literal)+1,100);
+void UART_SEND(const char* literal, char* word, size_t wordSize) {
+	toUpper(word,wordSize);
+	snprintf((char*)Tx_buffer,wordSize+strlen(literal)+2,"%s%s",literal,word);
+	Tx_buffer[strlen(literal)+wordSize] = (uint8_t)0x0A;
+	HAL_UART_Transmit(&huart1,(uint8_t *)Tx_buffer,wordSize+strlen(literal)+1,100);
+}
+
+void toUpper(char *str,size_t strSize) {
+	for (int i = 0; i < strSize; i++) {
+		if (str[i] >= 97 && str[i] <= 122) str[i] = str[i] - 32;
+	}
 }
 /* USER CODE END 0 */
 
@@ -373,7 +382,7 @@ void DictionaryManagerTask(void const *arguments) {
 			if (removeDict(wordDict,(char *)word,wordSize)){
 				UART_SEND("Deleted ",(char *)word,wordSize);
 			} else {
-				UART_SEND("Failed to deleted ",(char *)word,wordSize);
+				UART_SEND("Failed to delete ",(char *)word,wordSize);
 			}
 		} else if (instruction == CHECK) {
 			if (checkDict(wordDict,(char *)word,wordSize)) {
